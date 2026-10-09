@@ -60,6 +60,8 @@ class MemberResponse(BaseModel):
     group_id: int
     user_id: int
     full_name: Optional[str] = None
+    email: Optional[str] = None
+    profile_picture: Optional[str] = None
     role: str
     joined_at: datetime | None = None
 

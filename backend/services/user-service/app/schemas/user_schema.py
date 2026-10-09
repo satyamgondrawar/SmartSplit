@@ -22,6 +22,8 @@ class UserProfileResponse(BaseModel):
     phone: Optional[str]
     bio: Optional[str]
     profile_picture: Optional[str]
+    created_at: Optional[datetime] = None
+    updated_at: Optional[datetime] = None
 
     class Config:
         from_attributes = True

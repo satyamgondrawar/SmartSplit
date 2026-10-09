@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
   User,
   Mail,
@@ -13,6 +13,7 @@ import {
   Users,
   CheckCircle2,
 } from "lucide-react";
+import { useAuth } from "../context/AuthContext";
 
 import {
   getMyProfile,
@@ -21,6 +22,7 @@ import {
 } from "../services/userService";
 
 function Profile() {
+  const { user } = useAuth();
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState(false);
@@ -29,32 +31,32 @@ function Profile() {
   const [error, setError] = useState("");
 
   const [formData, setFormData] = useState({
-    name: "",
+    full_name: "",
     phone: "",
     bio: "",
+    email: "",
   });
 
-  useEffect(() => {
-    loadProfile();
-  }, []);
-
-  async function loadProfile() {
+  const loadProfile = useCallback(async () => {
     try {
       setLoading(true);
       setError("");
 
       const data = await getMyProfile();
-      console.log("Profile loaded:", data);
-
       setProfile(data);
       setFormData({
-        name: data.name || "",
-        email: data.email || "",
-        id: data.id || "",
+        full_name: data.full_name || "",
+        phone: data.phone || "",
+        bio: data.bio || "",
+        email: data.email || user?.email || "",
       });
-      
     } catch (err) {
-      if (err.message.includes("Profile not found")) {
+      if (err.status === 404) {
+        setFormData((current) => ({
+          ...current,
+          full_name: user?.name || "",
+          email: user?.email || "",
+        }));
         setEditing(true);
       } else {
         setError(err.message);
@@ -62,7 +64,11 @@ function Profile() {
     } finally {
       setLoading(false);
     }
-  }
+  }, [user?.email, user?.name]);
+
+  useEffect(() => {
+    loadProfile();
+  }, [loadProfile]);
 
   function handleChange(e) {
     setFormData({
@@ -101,9 +107,10 @@ function Profile() {
   function cancelEdit() {
     if (profile) {
       setFormData({
-        name: profile.name || "",
+        full_name: profile.full_name || "",
         phone: profile.phone || "",
         bio: profile.bio || "",
+        email: profile.email || user?.email || "",
       });
       setEditing(false);
     }
@@ -176,8 +183,8 @@ function Profile() {
               <div className="-mt-14 mb-5 flex items-end justify-between">
                 <div className="relative">
                   <div className="flex h-28 w-28 items-center justify-center rounded-full border-4 border-slate-900 bg-gradient-to-br from-indigo-500 to-purple-600 text-4xl font-bold shadow-xl">
-                    {formData.name
-                      ? formData.name.charAt(0).toUpperCase()
+                    {formData.full_name
+                      ? formData.full_name.charAt(0).toUpperCase()
                       : "U"}
                   </div>
 
@@ -192,7 +199,7 @@ function Profile() {
               </div>
 
               <h2 className="text-2xl font-bold">
-                {formData.name || "Your Name"}
+                {formData.full_name || "Your Name"}
               </h2>
 
               <p className="mt-1 text-sm text-slate-400">
@@ -289,9 +296,10 @@ function Profile() {
 
                     <input
                       type="text"
-                      name="name"
-                      value={formData.name}
+                      name="full_name"
+                      value={formData.full_name}
                       onChange={handleChange}
+                      required
                       placeholder="Enter your full name"
                       className="w-full rounded-xl border border-slate-700 bg-slate-800 px-4 py-3 text-white outline-none transition placeholder:text-slate-500 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20"
                     />
@@ -370,7 +378,7 @@ function Profile() {
                       Full Name
                     </p>
                     <p className="text-base font-medium text-slate-200">
-                      {profile?.name || "Not added yet"}
+                      {profile?.full_name || "Not added yet"}
                     </p>
                   </div>
 

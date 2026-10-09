@@ -1,9 +1,9 @@
-const GROUP_API_URL = "http://localhost";
+import { API_BASE_URL } from "./apiConfig";
 
 async function request(endpoint, options = {}) {
   const token = localStorage.getItem("access_token");
 
-  const response = await fetch(`${GROUP_API_URL}${endpoint}`, {
+  const response = await fetch(`${API_BASE_URL}${endpoint}`, {
     ...options,
     headers: {
       "Content-Type": "application/json",

@@ -7,4 +7,11 @@ export default defineConfig({
   plugins: [react(),
     tailwindcss()
   ],
+  server: {
+    proxy: {
+      '/auth': 'http://127.0.0.1:8001',
+      '/users': 'http://127.0.0.1:8002',
+      '/groups': 'http://127.0.0.1:8003',
+    },
+  },
 })

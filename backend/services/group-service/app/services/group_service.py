@@ -1,5 +1,6 @@
 from sqlalchemy.orm import Session
 import httpx
+import os
 
 from app.repositories.group_repository import GroupRepository
 from app.repositories.member_repository import MemberRepository
@@ -12,7 +13,14 @@ class GroupService:
         self.member_repository = MemberRepository()
 
         # User Service
-        self.USER_SERVICE_URL = "http://127.0.0.1:8002"
+        self.USER_SERVICE_URL = os.getenv(
+            "USER_SERVICE_URL",
+            "http://127.0.0.1:8002",
+        ).rstrip("/")
+        self.AUTH_SERVICE_URL = os.getenv(
+            "AUTH_SERVICE_URL",
+            "http://127.0.0.1:8001",
+        ).rstrip("/")
 
     # =====================================
     # CREATE GROUP
@@ -231,7 +239,8 @@ class GroupService:
         self,
         db: Session,
         group_id: int,
-        current_user_id: int
+        current_user_id: int,
+        authorization: str | None = None,
     ):
 
         # Check group exists
@@ -280,6 +289,7 @@ class GroupService:
 
                 response = httpx.get(
                     url,
+                    headers={"Authorization": authorization} if authorization else None,
                     timeout=5.0
                 )
 
@@ -298,16 +308,27 @@ class GroupService:
                     user_data = response.json()
                     print("USER DATA:", user_data)
 
-                    full_name = user_data.get(
-                        "full_name"
-                    )
+                    # Support either a flat response or nested profile
+                    profile_data = user_data.get("profile") or user_data
 
-                    email = user_data.get(
-                        "email"
-                    )
+                    full_name = profile_data.get("full_name")
+                    email = profile_data.get("email")
+                    profile_picture = profile_data.get("profile_picture")
 
-                    profile_picture = user_data.get(
-                        "profile_picture"
+                if not full_name or not email:
+                    identity_response = httpx.get(
+                        f"{self.AUTH_SERVICE_URL}/auth/users/{member.user_id}",
+                        headers={"Authorization": authorization} if authorization else None,
+                        timeout=5.0,
+                    )
+                    if identity_response.status_code == 200:
+                        identity = identity_response.json()
+                        full_name = full_name or identity.get("full_name")
+                        email = email or identity.get("email")
+
+                    print(
+                        f"Resolved user {member.user_id}: "
+                        f"full_name={full_name!r}"
                     )
 
             except httpx.RequestError as e:

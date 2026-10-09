@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useAuth } from "../context/AuthContext";
 import { useNavigate } from "react-router-dom";
 
@@ -46,12 +46,7 @@ function Dashboard() {
 
   const initial = displayName.charAt(0).toUpperCase();
 
-  // Fetch groups when dashboard loads
-  useEffect(() => {
-    loadGroups();
-  }, []);
-
-  const loadGroups = async () => {
+  const loadGroups = useCallback(async () => {
     try {
       setLoadingGroups(true);
       setError("");
@@ -65,7 +60,12 @@ function Dashboard() {
     } finally {
       setLoadingGroups(false);
     }
-  };
+  }, []);
+
+  // Fetch groups when dashboard loads
+  useEffect(() => {
+    loadGroups();
+  }, [loadGroups]);
 
   const handleCreateGroup = async (e) => {
     e.preventDefault();

@@ -2,13 +2,13 @@ import {
   createContext,
   useContext,
   useEffect,
+  useCallback,
   useState,
 } from "react";
 import { useNavigate } from "react-router-dom";
+import { API_BASE_URL } from "../services/apiConfig";
 
 const AuthContext = createContext(null);
-
-const AUTH_API_URL = "http://localhost";
 
 export function AuthProvider({ children }) {
   const navigate = useNavigate();
@@ -16,16 +16,8 @@ export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    checkAuth();
-  }, []);
-
-  const checkAuth = async () => {
+  const checkAuth = useCallback(async () => {
     const token = localStorage.getItem("access_token");
-
-    console.log("========== AUTH CHECK ==========");
-    console.log("Token exists:", !!token);
-    console.log("Token:", token);
 
     if (!token) {
       setLoading(false);
@@ -33,7 +25,7 @@ export function AuthProvider({ children }) {
     }
 
     try {
-      const response = await fetch(`${AUTH_API_URL}/auth/me`, {
+      const response = await fetch(`${API_BASE_URL}/auth/me`, {
         method: "GET",
         headers: {
           Authorization: `Bearer ${token}`,
@@ -42,41 +34,33 @@ export function AuthProvider({ children }) {
 
       const data = await response.json();
 
-      console.log("Auth status:", response.status);
-      console.log("Auth response:", data);
-
       if (!response.ok) {
         throw new Error(data.detail || "Invalid token");
       }
 
       setUser(data);
-    } catch (error) {
-      console.error("Authentication check failed:", error);
-
+    } catch {
       localStorage.removeItem("access_token");
       setUser(null);
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    checkAuth();
+  }, [checkAuth]);
 
   const login = async (email, password) => {
-    const formData = new URLSearchParams();
-
-    formData.append("username", email);
-    formData.append("password", password);
-
-    const response = await fetch(`${AUTH_API_URL}/auth/login`, {
+    const response = await fetch(`${API_BASE_URL}/auth/login`, {
       method: "POST",
       headers: {
-        "Content-Type": "application/x-www-form-urlencoded",
+        "Content-Type": "application/json",
       },
-      body: formData,
+      body: JSON.stringify({ email, password }),
     });
 
     const data = await response.json();
-
-    console.log("Login response:", data);
 
     if (!response.ok) {
       let errorMessage = "Login failed";
@@ -99,9 +83,15 @@ export function AuthProvider({ children }) {
     // Save JWT
     localStorage.setItem("access_token", data.access_token);
 
-    console.log("JWT saved:", data.access_token);
-
-    setUser(data.user || { email });
+    const profileResponse = await fetch(`${API_BASE_URL}/auth/me`, {
+      headers: { Authorization: `Bearer ${data.access_token}` },
+    });
+    const user = await profileResponse.json();
+    if (!profileResponse.ok) {
+      localStorage.removeItem("access_token");
+      throw new Error(user.detail || "Unable to load your account");
+    }
+    setUser(user);
 
     return data;
   };

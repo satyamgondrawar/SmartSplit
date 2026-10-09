@@ -1,67 +1,50 @@
-# SmartSplit 💰
+# SmartSplit
 
-SmartSplit is a microservices-based expense splitting platform
-that helps users create groups, track expenses, split bills,
-and manage settlements.
+SmartSplit currently contains a React frontend and three FastAPI services:
+authentication, user profiles, and groups/invitations.
 
-## 🚀 Features
+## Local development
 
-- User authentication
-- JWT authentication
-- Google authentication
-- User profiles
-- Group creation and management
-- Add/remove group members
-- Expense splitting
-- Settlement tracking
-- AI-powered expense insights
-- Notifications
-- REST APIs
-- Microservices architecture
-- Docker support
+Configure `DATABASE_URL` and `SECRET_KEY` in each service's existing `.env`
+file under `backend/services/<service-name>/`. Use the same `SECRET_KEY` and
+`ALGORITHM` in all three services so every service can verify auth tokens.
+Each service loads its `.env` relative to its own source, so it can be started
+from its service directory.
 
-## 🏗️ Architecture
+Start one backend in each terminal from the repository root:
 
-Frontend
-    ↓
-API Gateway
-    ↓
-┌──────────────┬──────────────┬──────────────┐
-│ Auth Service │ User Service │ Group Service│
-└──────────────┴──────────────┴──────────────┘
-          ↓
-   Expense Service
-          ↓
- Settlement Service
-          ↓
-      AI Service
+```powershell
+cd backend/services/auth-service
+..\..\venv\Scripts\python.exe -m uvicorn app.main:app --host 127.0.0.1 --port 8001 --reload
+```
 
-## 🛠️ Tech Stack
+```powershell
+cd backend/services/user-service
+..\..\venv\Scripts\python.exe -m uvicorn app.main:app --host 127.0.0.1 --port 8002 --reload
+```
 
-### Frontend
-- React
-- Vite
-- Tailwind CSS
-- React Router
+```powershell
+cd backend/services/group-service
+..\..\venv\Scripts\python.exe -m uvicorn app.main:app --host 127.0.0.1 --port 8003 --reload
+```
 
-### Backend
-- Python
-- FastAPI
-- SQLAlchemy
-- PostgreSQL
+Then start the frontend:
 
-### DevOps
-- Docker
-- Docker Compose
-- Nginx
-- GitHub
+```powershell
+cd frontend
+npm install
+npm run dev
+```
 
-## 📁 Project Structure
+Vite forwards `/auth` to port 8001, `/users` to port 8002, and `/groups` to
+port 8003. The group service calls the user service at `USER_SERVICE_URL`,
+which defaults to `http://127.0.0.1:8002`.
 
-SmartSplit/
-├── frontend/
-├── backend/
-│   └── services/
-├── docker-compose.yml
-├── .gitignore
-└── README.md
+Each API exposes `/health` and `/docs`. Open the docs at ports 8001, 8002, and
+8003 to inspect the auth, user, and group APIs respectively.
+
+## Current scope
+
+Expense tracking, settlement processing, Google sign-in, AI insights, and
+notifications are listed as product ideas, but their backend services and
+routes are not present in this repository yet.

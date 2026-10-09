@@ -4,6 +4,7 @@ from fastapi import (
     APIRouter,
     Depends,
     HTTPException,
+    Header,
     status
 )
 
@@ -119,11 +120,22 @@ def get_group(
 ):
 
     try:
-
-        return group_service.get_group(
+        group = group_service.get_group(
             db=db,
             group_id=group_id
         )
+
+        if not group_service.member_repository.get_member(
+            db,
+            group_id,
+            current_user_id
+        ):
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="You are not a member of this group"
+            )
+
+        return group
 
     except ValueError as e:
 
@@ -243,7 +255,8 @@ def add_member(
 def get_members(
     group_id: int,
     db: Session = Depends(get_db),
-    current_user_id: int = Depends(get_current_user_id)
+    current_user_id: int = Depends(get_current_user_id),
+    authorization: str | None = Header(default=None),
 ):
 
     try:
@@ -251,7 +264,8 @@ def get_members(
         return group_service.get_members(
             db=db,
             group_id=group_id,
-            current_user_id=current_user_id
+            current_user_id=current_user_id,
+            authorization=authorization,
         )
 
     except ValueError as e:

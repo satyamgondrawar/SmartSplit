@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { loginUser } from "../services/api";
+import { useAuth } from "../context/AuthContext";
 import {
   Mail,
   Lock,
@@ -13,6 +13,7 @@ import {
 
 function Login() {
   const navigate = useNavigate();
+  const { login } = useAuth();
 
   const [formData, setFormData] = useState({
     email: "",
@@ -37,17 +38,13 @@ function Login() {
     setLoading(true);
 
     try {
-      const response = await loginUser(
-        formData.email,
-        formData.password
-      );
-
-      localStorage.setItem("access_token", response.access_token);
+      await login(formData.email, formData.password);
 
       const pendingInviteToken =
         localStorage.getItem("pending_invite_token");
 
       if (pendingInviteToken) {
+        localStorage.removeItem("pending_invite_token");
         navigate(`/join/${pendingInviteToken}`);
       } else {
         navigate("/dashboard");

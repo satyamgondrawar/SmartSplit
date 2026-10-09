@@ -8,7 +8,7 @@ import {
   CheckCircle2,
 } from "lucide-react";
 
-const API_URL = "http://127.0.0.1:8001";
+import { API_BASE_URL } from "../services/apiConfig";
 
 function ForgotPassword() {
   const [email, setEmail] = useState("");
@@ -24,7 +24,7 @@ function ForgotPassword() {
     setLoading(true);
 
     try {
-      const response = await fetch(`${API_URL}/auth/forgot-password`, {
+      const response = await fetch(`${API_BASE_URL}/auth/forgot-password`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

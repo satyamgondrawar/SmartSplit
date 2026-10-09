@@ -21,7 +21,9 @@ class UserRepository:
     ):
         profile = Profile(
             user_id=user_id,
-            **profile_data
+            full_name=profile_data.get("full_name"),
+            phone=profile_data.get("phone"),
+            bio=profile_data.get("bio"),
         )
 
         db.add(profile)

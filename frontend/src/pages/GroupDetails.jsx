@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { QRCodeCanvas } from "qrcode.react";
 import {
@@ -12,7 +12,7 @@ import {
   Copy,
   Check,
 } from "lucide-react";
-const GROUP_API_URL = "http://localhost";
+import { API_BASE_URL } from "../services/apiConfig";
 
 export default function GroupDetails() {
   const { groupId } = useParams();
@@ -31,15 +31,11 @@ export default function GroupDetails() {
   const [inviteError, setInviteError] = useState("");
   const [copied, setCopied] = useState(false);
 
-  useEffect(() => {
-    fetchGroup();
-  }, [groupId]);
-
   // =========================
   // FETCH GROUP MEMBERS
   // =========================
 
-  async function fetchGroup() {
+  const fetchGroup = useCallback(async () => {
   try {
     setLoading(true);
     setError("");
@@ -48,7 +44,7 @@ export default function GroupDetails() {
 
     // 1. Fetch actual group details
     const groupResponse = await fetch(
-      `${GROUP_API_URL}/groups/${groupId}`,
+      `${API_BASE_URL}/groups/${groupId}`,
       {
         method: "GET",
         headers: {
@@ -71,7 +67,7 @@ export default function GroupDetails() {
 
     // 2. Fetch group members
     const membersResponse = await fetch(
-      `${GROUP_API_URL}/groups/${groupId}/members`,
+      `${API_BASE_URL}/groups/${groupId}/members`,
       {
         method: "GET",
         headers: {
@@ -82,7 +78,6 @@ export default function GroupDetails() {
     );
 
     const membersData = await membersResponse.json();
-    console.log("GROUP MEMBERS:", membersData);
 
     if (!membersResponse.ok) {
       throw new Error(
@@ -90,7 +85,34 @@ export default function GroupDetails() {
       );
     }
 
-    setMembers(membersData);
+    const resolvedMembers = await Promise.all(
+      membersData.map(async (member) => {
+        if (member.full_name || member.name) {
+          return member;
+        }
+
+        try {
+          const identityResponse = await fetch(
+            `${API_BASE_URL}/auth/users/${member.user_id}`,
+            { headers: { Authorization: `Bearer ${token}` } }
+          );
+          if (!identityResponse.ok) {
+            return member;
+          }
+
+          const identity = await identityResponse.json();
+          return {
+            ...member,
+            full_name: identity.full_name,
+            email: member.email || identity.email,
+          };
+        } catch {
+          return member;
+        }
+      })
+    );
+
+    setMembers(resolvedMembers);
 
   } catch (err) {
     console.error("Group details error:", err);
@@ -98,7 +120,11 @@ export default function GroupDetails() {
   } finally {
     setLoading(false);
   }
-}
+  }, [groupId]);
+
+  useEffect(() => {
+    fetchGroup();
+  }, [fetchGroup]);
   // =========================
 // DELETE GROUP
 // =========================
@@ -114,7 +140,7 @@ export default function GroupDetails() {
       const token = localStorage.getItem("access_token");
 
       const response = await fetch(
-        `${GROUP_API_URL}/groups/${groupId}`,
+      `${API_BASE_URL}/groups/${groupId}`,
         {
           method: "DELETE",
           headers: {
@@ -155,7 +181,7 @@ export default function GroupDetails() {
       const token = localStorage.getItem("access_token");
 
       const response = await fetch(
-        `${GROUP_API_URL}/groups/${groupId}/invites`,
+      `${API_BASE_URL}/groups/${groupId}/invites`,
         {
           method: "POST",
           headers: {

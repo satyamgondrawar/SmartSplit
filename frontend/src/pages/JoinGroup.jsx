@@ -1,7 +1,7 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 
-const API_URL = "http://localhost";
+import { API_BASE_URL } from "../services/apiConfig";
 
 export default function JoinGroup() {
   const { token } = useParams();
@@ -12,17 +12,13 @@ export default function JoinGroup() {
   const [joining, setJoining] = useState(false);
   const [error, setError] = useState("");
 
-  useEffect(() => {
-    loadInvite();
-  }, [token]);
-
-  async function loadInvite() {
+  const loadInvite = useCallback(async () => {
     try {
       setLoading(true);
       setError("");
 
       const response = await fetch(
-        `${API_URL}/groups/invites/${token}`
+        `${API_BASE_URL}/groups/invites/${token}`
       );
 
       const data = await response.json();
@@ -39,7 +35,11 @@ export default function JoinGroup() {
     } finally {
       setLoading(false);
     }
-  }
+  }, [token]);
+
+  useEffect(() => {
+    loadInvite();
+  }, [loadInvite]);
 
   async function handleJoin() {
     const accessToken =
@@ -61,7 +61,7 @@ export default function JoinGroup() {
       setError("");
 
       const response = await fetch(
-        `${API_URL}/groups/invites/${token}/join`,
+        `${API_BASE_URL}/groups/invites/${token}/join`,
         {
           method: "POST",
           headers: {
